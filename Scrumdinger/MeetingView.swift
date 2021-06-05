@@ -1,48 +1,34 @@
-//
-//  ContentView.swift
-//  Scrumdinger
-//
-//  Created by Naoyuki Sato on 2021/05/30.
-//
-
 import SwiftUI
+import AVFoundation
 
 struct MeetingView: View {
     @Binding var scrum: DailyScrum
+    @StateObject var scrumTimer = ScrumTimer()
+    var player: AVPlayer { AVPlayer.sharedDingPlayer }
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 16.0)
                 .fill(scrum.color)
             VStack {
-                ProgressView(value: 5.0, total: 15)
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text("Seconds Elapsed")
-                            .font(.caption)
-                        Label("300", systemImage: "hourglass.bottomhalf.fill")
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing) {
-                        Text("Seconds Remaining")
-                            .font(.caption)
-                        Label("600", systemImage: "hourglass.tophalf.fill")
-                    }
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text("Time remaining"))
+                MeetingHeaderView(secondsElapsed: scrumTimer.secondsElapsed, secondsRemaining: scrumTimer.secondsRemaining, scrumColor: scrum.color)
                 Circle()
-                                .strokeBorder(lineWidth: 24, antialiased: true)
-                HStack{
-                    Text("Speaker 1 of 3")
-                    Spacer()
-                    Button(action: {}) {
-                                        Image(systemName: "forward.fill")
-                                    }
-                }
+                    .strokeBorder(lineWidth: 24, antialiased: true)
+                MeetingFooterView(speakers: scrumTimer.speakers, skipAction: scrumTimer.skipSpeaker)
             }
-            
         }
         .padding()
+        .foregroundColor(scrum.color.accessibleFontColor)
+        .onAppear {
+            scrumTimer.reset(lengthInMinutes: scrum.lengthInMinutes, attendees: scrum.attendees)
+            scrumTimer.speakerChangedAction = {
+                player.seek(to: .zero)
+                player.play()
+            }
+            scrumTimer.startScrum()
+        }
+        .onDisappear {
+            scrumTimer.stopScrum()
+        }
     }
 }
 
